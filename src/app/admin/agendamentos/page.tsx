@@ -100,6 +100,12 @@ export default function CRMAdminPage() {
   const [adminNotes, setAdminNotes] = useState<string>('');
   const [updatingBooking, setUpdatingBooking] = useState<boolean>(false);
 
+  // Seleção de Intervalo no Admin e campos do formulário
+  const [adminCheckIn, setAdminCheckIn] = useState<string | null>(null);
+  const [adminCheckOut, setAdminCheckOut] = useState<string | null>(null);
+  const [formCheckIn, setFormCheckIn] = useState<string>('');
+  const [formCheckOut, setFormCheckOut] = useState<string>('');
+
   // Estados para Edição de Cabana
   const [isEditCabinModalOpen, setIsEditCabinModalOpen] = useState<boolean>(false);
   const [editCabinName, setEditCabinName] = useState<string>('');
@@ -286,29 +292,51 @@ export default function CRMAdminPage() {
 
     const booking = getBookingForDay(cabin.id, day);
 
-    setSelectedDayInfo({
-      dateStr,
-      cabin,
-      booking
-    });
-
     if (booking) {
+      // Se já existe uma reserva, abre direto para gerenciar
+      setSelectedDayInfo({
+        dateStr,
+        cabin,
+        booking
+      });
+      setFormCheckIn(booking.check_in_date);
+      setFormCheckOut(booking.check_out_date);
       setAdminGuestName(booking.clients?.name || 'Bloqueio administrativo');
       setAdminGuestPhone(booking.clients?.phone || '');
       setAdminGuestEmail(booking.clients?.email || '');
       setAdminBookingStatus(booking.status);
       setAdminNumGuests(booking.num_guests);
       setAdminNotes(booking.notes || '');
+      setIsDetailModalOpen(true);
     } else {
-      setAdminGuestName('');
-      setAdminGuestPhone('');
-      setAdminGuestEmail('');
-      setAdminBookingStatus('pendente');
-      setAdminNumGuests(1);
-      setAdminNotes('Reserva criada via Painel Admin');
+      // Se o dia está livre, faz a seleção do período
+      if (!adminCheckIn || (adminCheckIn && adminCheckOut)) {
+        setAdminCheckIn(dateStr);
+        setAdminCheckOut(null);
+      } else {
+        if (dateStr < adminCheckIn) {
+          setAdminCheckIn(dateStr);
+        } else {
+          // Define Check-out e abre o modal de criação
+          setAdminCheckOut(dateStr);
+          setSelectedDayInfo({
+            dateStr,
+            cabin,
+            booking: null
+          });
+          
+          setFormCheckIn(adminCheckIn);
+          setFormCheckOut(dateStr);
+          setAdminGuestName('');
+          setAdminGuestPhone('');
+          setAdminGuestEmail('');
+          setAdminBookingStatus('pendente');
+          setAdminNumGuests(1);
+          setAdminNotes('Reserva criada via Painel Admin');
+          setIsDetailModalOpen(true);
+        }
+      }
     }
-
-    setIsDetailModalOpen(true);
   };
 
   const handleSaveBookingAdmin = async (e: React.FormEvent) => {
@@ -316,7 +344,7 @@ export default function CRMAdminPage() {
     if (!selectedDayInfo) return;
 
     setUpdatingBooking(true);
-    const { dateStr, cabin, booking } = selectedDayInfo;
+    const { cabin, booking } = selectedDayInfo;
 
     try {
       if (booking) {
@@ -331,6 +359,8 @@ export default function CRMAdminPage() {
           const { error } = await supabase
             .from('bookings')
             .update({
+              check_in_date: formCheckIn,
+              check_out_date: formCheckOut,
               status: adminBookingStatus,
               num_guests: adminNumGuests,
               notes: adminNotes
@@ -372,8 +402,8 @@ export default function CRMAdminPage() {
           .insert({
             cabin_id: cabin.id,
             client_id: clientId,
-            check_in_date: dateStr,
-            check_out_date: dateStr,
+            check_in_date: formCheckIn,
+            check_out_date: formCheckOut,
             status: adminBookingStatus,
             num_guests: adminNumGuests,
             notes: adminNotes
@@ -382,6 +412,8 @@ export default function CRMAdminPage() {
         if (error) throw error;
       }
 
+      setAdminCheckIn(null);
+      setAdminCheckOut(null);
       await loadDatabaseData();
       setIsDetailModalOpen(false);
 
@@ -605,6 +637,27 @@ export default function CRMAdminPage() {
                 </div>
               </div>
 
+              {/* Seletor de Período Informativo */}
+              {adminCheckIn && (
+                <div className="bg-gold/10 border border-gold/20 px-4 py-2.5 rounded-2xl flex items-center justify-between text-xs text-coffee dark:text-stone-300">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gold animate-pulse" />
+                    <span>
+                      {!adminCheckOut 
+                        ? `Check-in selecionado: ${formatDateBR(adminCheckIn)}. Agora clique na data de Check-out.`
+                        : `Período selecionado: ${formatDateBR(adminCheckIn)} até ${formatDateBR(adminCheckOut)}`
+                      }
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => { setAdminCheckIn(null); setAdminCheckOut(null); }}
+                    className="text-[10px] font-bold text-wood hover:text-gold dark:hover:text-white underline cursor-pointer"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              )}
+
               {/* 1. VISÃO LINHA DO TEMPO */}
               <div className="space-y-3">
                 <h4 className="text-xs font-serif font-bold text-wood uppercase tracking-widest flex items-center gap-1.5">
@@ -627,7 +680,14 @@ export default function CRMAdminPage() {
                         <td className="px-4 py-4 text-xs font-bold text-coffee dark:text-stone-300">Status</td>
                         {daysInMonth.map(day => {
                           const booking = getBookingForDay(activeCabin.id, day);
-                          let cellBg = "bg-transparent hover:bg-gold/5";
+                          const monthStr = String(selectedMonth + 1).padStart(2, '0');
+                          const dayStr = String(day).padStart(2, '0');
+                          const dateStr = `${selectedYear}-${monthStr}-${dayStr}`;
+                          const isSelectedRange = adminCheckIn && dateStr >= adminCheckIn && (!adminCheckOut || dateStr <= adminCheckOut);
+
+                          let cellBg = isSelectedRange 
+                            ? "bg-gold/20 text-coffee dark:text-gold hover:bg-gold/30 shadow-sm" 
+                            : "bg-transparent hover:bg-gold/5";
                           
                           if (booking) {
                             if (booking.status === 'confirmado') cellBg = "bg-emerald-500 text-white hover:bg-emerald-600";
@@ -685,7 +745,14 @@ export default function CRMAdminPage() {
                     
                     {daysInMonth.map(day => {
                       const booking = getBookingForDay(activeCabin.id, day);
-                      let cellClass = "bg-bgCard hover:bg-beige/10 dark:bg-stone-900 dark:hover:bg-stone-800 border border-beige/20 dark:border-stone-800 text-coffee dark:text-stone-300";
+                      const monthStr = String(selectedMonth + 1).padStart(2, '0');
+                      const dayStr = String(day).padStart(2, '0');
+                      const dateStr = `${selectedYear}-${monthStr}-${dayStr}`;
+                      const isSelectedRange = adminCheckIn && dateStr >= adminCheckIn && (!adminCheckOut || dateStr <= adminCheckOut);
+
+                      let cellClass = isSelectedRange
+                        ? "bg-gold/20 border-gold text-coffee dark:text-gold hover:bg-gold/30 shadow-sm"
+                        : "bg-bgCard hover:bg-beige/10 dark:bg-stone-900 dark:hover:bg-stone-800 border border-beige/20 dark:border-stone-800 text-coffee dark:text-stone-300";
                       
                       if (booking) {
                         if (booking.status === 'confirmado') cellClass = "bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
@@ -905,6 +972,30 @@ export default function CRMAdminPage() {
 
               <form onSubmit={handleSaveBookingAdmin} className="p-6 space-y-4">
                 <div className="space-y-3">
+                  {/* Período de Estadia (Editável no Admin) */}
+                  <div className="grid grid-cols-2 gap-3 bg-gold/5 border border-gold/10 p-3 rounded-2xl">
+                    <div>
+                      <label className="block text-[10px] font-bold text-wood uppercase tracking-wider mb-1">Check-in</label>
+                      <input
+                        type="date"
+                        required
+                        value={formCheckIn}
+                        onChange={e => setFormCheckIn(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-beige/40 dark:border-stone-800 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-wood uppercase tracking-wider mb-1">Check-out</label>
+                      <input
+                        type="date"
+                        required
+                        value={formCheckOut}
+                        onChange={e => setFormCheckOut(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-beige/40 dark:border-stone-800 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 font-bold"
+                      />
+                    </div>
+                  </div>
+
                   {adminBookingStatus !== 'manutencao' && (
                     <>
                       <div>
