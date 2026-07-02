@@ -206,7 +206,7 @@ export default function LandingPage() {
             <div className="bg-bgCard border border-beige/40 rounded-[2.5rem] overflow-hidden shadow-md shadow-coffee/5 hover:shadow-lg hover:shadow-coffee/10 hover:-translate-y-0.5 transition-all duration-300">
               <div className="relative h-72 bg-stone-100 overflow-hidden">
                 <img 
-                  src="/images/fazenda-paisagem.jpg" 
+                  src="/images/cabana-fachada.png" 
                   alt="Cabana Premium"
                   className="w-full h-full object-cover hover:scale-103 transition-transform duration-700"
                 />
