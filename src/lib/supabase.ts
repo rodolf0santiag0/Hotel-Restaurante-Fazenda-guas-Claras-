@@ -1,0 +1,7 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-url.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
+
+// Cliente Supabase para uso em componentes Client-Side
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

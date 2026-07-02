@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 30% 98%;      /* Soft Cream/Beige */
+    --foreground: 20 30% 10%;      /* Deep Warm Brown */
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 30% 10%;
+
+    --primary: 37 46% 45%;         /* Warm Gold/Bronze Accents */
+    --primary-foreground: 36 30% 98%;
+
+    --secondary: 37 25% 92%;       /* Soft Sand/Champagne */
+    --secondary-foreground: 20 30% 10%;
+
+    --muted: 37 20% 90%;
+    --muted-foreground: 20 15% 40%;
+
+    --accent: 37 25% 92%;
+    --accent-foreground: 20 30% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+
+    --border: 37 25% 85%;          /* Warm border */
+    --input: 37 25% 85%;
+    --ring: 37 46% 45%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 20 40% 7%;       /* Deep Chocolate Background */
+    --foreground: 36 30% 95%;      /* Creamy text */
+
+    --card: 20 35% 11%;            /* Lighter Chocolate Card */
+    --card-foreground: 36 30% 95%;
+
+    --popover: 20 35% 11%;
+    --popover-foreground: 36 30% 95%;
+
+    --primary: 37 46% 58%;         /* Glowing Gold */
+    --primary-foreground: 20 40% 7%;
+
+    --secondary: 20 25% 15%;       /* Dark Chocolate Accent */
+    --secondary-foreground: 36 30% 95%;
+
+    --muted: 20 25% 15%;
+    --muted-foreground: 36 20% 65%;
+
+    --accent: 20 25% 15%;
+    --accent-foreground: 36 30% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 20 25% 18%;
+    --input: 20 25% 18%;
+    --ring: 37 46% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-stone-200 dark:border-stone-800;
+  }
+  body {
+    @apply bg-stone-50 text-stone-800 dark:bg-stone-950 dark:text-stone-100 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Animações Auxiliares */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
