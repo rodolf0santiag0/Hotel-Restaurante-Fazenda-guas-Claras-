@@ -8,12 +8,30 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "sans-serif"],
+        serif: ["var(--font-serif)", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        // Cores do Design System Terroso & Dourado
+        coffee: "#2E1F17",
+        wood: "#4A3126",
+        chocolate: "#5B3A29",
+        gold: "#C79A52",
+        bronze: "#B58346",
+        beige: "#EADDC8",
+        creme: "#F5EFE4",
+        bgPrimary: "#FAF7F2",
+        bgSecondary: "#F2ECE2",
+        bgCard: "#FFFDF9",
+        bgFooter: "#23170F",
+
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

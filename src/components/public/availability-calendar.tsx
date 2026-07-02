@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -12,9 +13,8 @@ import {
   Check, 
   AlertCircle, 
   Clock, 
-  HelpCircle,
-  Sparkles,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { cn, formatDateBR, calculateNights } from '@/lib/utils';
@@ -50,7 +50,7 @@ export default function AvailabilityCalendar() {
   const [checkOut, setCheckOut] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   
-  // Cabana Selecionada após verificar disponibilidade
+  // Cabana Selecionada
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
   
   // Estado do Modal de Lead
@@ -63,13 +63,12 @@ export default function AvailabilityCalendar() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
 
-  // Carregar cabanas e todas as reservas do Supabase
+  // Carregar cabanas e reservas
   useEffect(() => {
     async function loadData() {
       try {
         setLoadingData(true);
         
-        // 1. Carregar Cabanas
         const { data: dbCabins, error: cabinsErr } = await supabase
           .from('cabins')
           .select('*')
@@ -80,7 +79,6 @@ export default function AvailabilityCalendar() {
           setCabins(dbCabins);
         }
 
-        // 2. Carregar todas as Reservas não canceladas
         const { data: dbBookings, error: bookingsErr } = await supabase
           .from('bookings')
           .select('*')
@@ -90,7 +88,7 @@ export default function AvailabilityCalendar() {
           setBookings(dbBookings);
         }
       } catch (err) {
-        console.error('Erro ao integrar com Supabase, usando mocks locais.', err);
+        console.error('Erro ao carregar dados do Supabase, rodando localmente com mocks.', err);
       } finally {
         setLoadingData(false);
       }
@@ -99,12 +97,12 @@ export default function AvailabilityCalendar() {
     loadData();
   }, []);
 
-  // Reseta a cabana selecionada se o usuário mudar as datas de reserva
+  // Reseta cabana se datas mudarem
   useEffect(() => {
     setSelectedCabin(null);
   }, [checkIn, checkOut]);
 
-  // Auxiliares de Navegação do Mês
+  // Navegação do Mês
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -113,7 +111,7 @@ export default function AvailabilityCalendar() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // Lógica para gerar as datas do grid do calendário
+  // Gerar dias
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -124,7 +122,6 @@ export default function AvailabilityCalendar() {
 
     const days = [];
 
-    // Dias do mês anterior para alinhamento
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const prevDate = new Date(year, month - 1, totalPrevDays - i);
       days.push({
@@ -134,7 +131,6 @@ export default function AvailabilityCalendar() {
       });
     }
 
-    // Dias do mês atual
     for (let i = 1; i <= totalDays; i++) {
       const currDate = new Date(year, month, i);
       days.push({
@@ -144,7 +140,6 @@ export default function AvailabilityCalendar() {
       });
     }
 
-    // Dias do próximo mês
     const totalGridCells = 42;
     const nextDaysCount = totalGridCells - days.length;
     for (let i = 1; i <= nextDaysCount; i++) {
@@ -166,13 +161,11 @@ export default function AvailabilityCalendar() {
     return `${y}-${m}-${d}`;
   };
 
-  // Verifica se um dia específico está no passado
   const isDateInPast = (dateStr: string) => {
     const todayStr = formatDateString(new Date());
     return dateStr < todayStr;
   };
 
-  // Manipula o clique nos dias
   const handleDateClick = (dateStr: string) => {
     if (isDateInPast(dateStr)) return;
 
@@ -188,7 +181,6 @@ export default function AvailabilityCalendar() {
     }
   };
 
-  // Retorna se o dia está selecionado no intervalo
   const isDateSelected = (dateStr: string) => {
     if (checkIn === dateStr) return 'start';
     if (checkOut === dateStr) return 'end';
@@ -204,20 +196,15 @@ export default function AvailabilityCalendar() {
     return null;
   };
 
-  // FUNÇÃO CRÍTICA: Verifica se uma cabana específica está disponível no período selecionado
   const isCabinAvailable = (cabinId: string) => {
     if (!checkIn || !checkOut) return false;
 
-    // Retorna verdadeiro se NÃO houver reservas conflitantes para esta cabana no período
     return !bookings.some(booking => {
       if (booking.cabin_id !== cabinId || booking.status === 'cancelado') return false;
-      
-      // Conflito de intervalo: (CheckIn_Usuário < Checkout_Existente) E (Checkout_Usuário > Checkin_Existente)
       return checkIn < booking.check_out_date && checkOut > booking.check_in_date;
     });
   };
 
-  // Envio do Lead & Agendamento
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkIn || !checkOut || !selectedCabin) return;
@@ -226,7 +213,6 @@ export default function AvailabilityCalendar() {
     setIsSubmitting(true);
 
     try {
-      // 1. Criar/buscar Lead do cliente
       const { data: existingClient, error: clientFetchError } = await supabase
         .from('clients')
         .select('id')
@@ -253,7 +239,6 @@ export default function AvailabilityCalendar() {
           .eq('id', clientId);
       }
 
-      // 2. Gravar Reserva no Banco (como pré-agendamento pendente)
       const { error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -270,7 +255,6 @@ export default function AvailabilityCalendar() {
 
       setSuccess(true);
 
-      // 3. Redirecionar ao WhatsApp da Fazenda
       const nights = calculateNights(checkIn, checkOut);
       const totalPrice = nights * selectedCabin.price_per_night;
       
@@ -302,41 +286,41 @@ export default function AvailabilityCalendar() {
   ];
 
   return (
-    <div className="w-full bg-white dark:bg-stone-900 border border-stone-250 dark:border-stone-800 rounded-3xl shadow-xl overflow-hidden space-y-6">
+    <div className="w-full bg-[#FFFDF9] dark:bg-[#2E1F17] border border-beige/40 dark:border-stone-800 rounded-[2rem] shadow-md shadow-coffee/5 overflow-hidden space-y-6">
       
-      {/* 1. SELETOR DE DATAS (CALENDÁRIO GENERALISTA) */}
-      <div className="bg-gradient-to-r from-stone-900 to-stone-950 text-white p-6 flex justify-between items-center border-b border-stone-850">
+      {/* 1. SELETOR DE DATAS */}
+      <div className="bg-coffee text-white p-6 flex justify-between items-center border-b border-beige/10">
         <div>
-          <h3 className="text-xl font-bold tracking-wide flex items-center gap-2 text-amber-400">
-            <CalendarIcon className="w-5.5 h-5.5 text-amber-500" />
+          <h3 className="text-lg font-serif font-bold tracking-wide flex items-center gap-2 text-gold">
+            <CalendarIcon className="w-5 h-5 text-gold" />
             1. Período da Estadia
           </h3>
-          <p className="text-stone-300 text-xs mt-0.5">Selecione as datas de check-in e check-out</p>
+          <p className="text-stone-300 text-[11px] mt-0.5 font-light">Selecione as datas de check-in e check-out</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handlePrevMonth} 
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors duration-200"
             title="Mês Anterior"
           >
-            <ChevronLeft className="w-5 h-5 text-stone-300" />
+            <ChevronLeft className="w-4 h-4 text-stone-300" />
           </button>
-          <span className="font-semibold min-w-[120px] text-center text-sm text-stone-100">
+          <span className="font-serif font-bold min-w-[110px] text-center text-xs text-stone-100 uppercase tracking-widest">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
           <button 
             onClick={handleNextMonth} 
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors duration-200"
             title="Próximo Mês"
           >
-            <ChevronRight className="w-5 h-5 text-stone-300" />
+            <ChevronRight className="w-4 h-4 text-stone-300" />
           </button>
         </div>
       </div>
 
-      {/* Grid de Dias do Calendário */}
+      {/* Grid do Calendário */}
       <div className="px-6 pb-2">
-        <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-stone-400 mb-3">
+        <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] uppercase tracking-wider text-wood mb-3">
           <div>Dom</div>
           <div>Seg</div>
           <div>Ter</div>
@@ -359,29 +343,29 @@ export default function AvailabilityCalendar() {
                 onMouseEnter={() => setHoveredDate(day.formatted)}
                 onMouseLeave={() => setHoveredDate(null)}
                 className={cn(
-                  "h-11 w-full rounded-xl flex flex-col justify-center items-center text-sm font-bold transition-all relative border border-transparent",
+                  "h-11 w-full rounded-xl flex flex-col justify-center items-center text-xs font-bold transition-all duration-200 relative border border-transparent",
                   
                   // Mês fora de foco
                   !day.isCurrentMonth && "text-stone-300 dark:text-stone-700",
                   
                   // Datas passadas
-                  isPast && "text-stone-300 dark:text-stone-800 cursor-not-allowed bg-stone-50/50 dark:bg-stone-950/20 line-through",
+                  isPast && "text-stone-300 dark:text-stone-700 cursor-not-allowed bg-stone-50/50 dark:bg-stone-900/10 line-through",
                   
-                  // Dias livres selecionáveis
-                  !isPast && day.isCurrentMonth && "text-stone-750 dark:text-stone-300 hover:border-amber-500 hover:bg-amber-500/5",
+                  // Dias livres
+                  !isPast && day.isCurrentMonth && "text-coffee dark:text-stone-300 hover:border-gold hover:bg-gold/5",
                   
-                  // Estilos do intervalo de seleção (Amber/Gold Theme)
-                  selection === 'start' && "bg-amber-600 text-white rounded-xl shadow-md z-10",
-                  selection === 'end' && "bg-amber-600 text-white rounded-xl shadow-md z-10",
-                  selection === 'middle' && "bg-amber-100/60 text-amber-900 dark:bg-amber-950/20 dark:text-amber-300 rounded-none",
-                  selection === 'hover-range' && "bg-amber-100/40 text-amber-800 dark:bg-amber-950/10 rounded-none border-dashed border-amber-300"
+                  // Selecionado / Hover (Dourado Premium)
+                  selection === 'start' && "bg-gold text-white rounded-xl shadow-md z-10 hover:bg-gold",
+                  selection === 'end' && "bg-gold text-white rounded-xl shadow-md z-10 hover:bg-gold",
+                  selection === 'middle' && "bg-gold/10 text-coffee dark:bg-gold/5 dark:text-gold rounded-none",
+                  selection === 'hover-range' && "bg-gold/5 text-gold rounded-none border-dashed border-gold/30"
                 )}
               >
                 <span>{day.date.getDate()}</span>
                 {day.formatted === formatDateString(new Date()) && (
                   <span className={cn(
-                    "absolute bottom-1 w-1.5 h-1.5 rounded-full",
-                    selection ? "bg-white" : "bg-amber-650"
+                    "absolute bottom-1.5 w-1 h-1 rounded-full",
+                    selection ? "bg-white" : "bg-gold"
                   )} />
                 )}
               </button>
@@ -390,24 +374,24 @@ export default function AvailabilityCalendar() {
         </div>
       </div>
 
-      {/* 2. GRID DAS CABANAS DISPONÍVEIS (NUMERAÇÃO DE 01 A 20) */}
-      <div className="border-t border-stone-200 dark:border-stone-800 p-6 space-y-4">
+      {/* 2. GRID DAS CABANAS */}
+      <div className="border-t border-beige/40 dark:border-stone-800 p-6 space-y-4">
         <div>
-          <h3 className="text-base font-bold text-stone-850 dark:text-stone-100 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-600" />
+          <h3 className="text-base font-serif font-bold text-coffee dark:text-stone-100 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-gold" />
             2. Seleção de Cabana
           </h3>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-wood font-light mt-0.5">
             {checkIn && checkOut 
-              ? "Clique em um dos quadradinhos verdes abaixo para selecionar a cabana disponível."
-              : "Defina o período da estadia acima para verificar a disponibilidade das cabanas."}
+              ? "Clique em um número verde abaixo para selecionar sua cabana preferida."
+              : "Defina o período acima para verificar a disponibilidade das cabanas."}
           </p>
         </div>
 
-        {/* Grid de 20 Quadrados das Cabanas */}
-        <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
+        {/* Grid de 20 Quadrados */}
+        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5">
           {cabins.map((cabin) => {
-            const numLabel = cabin.name.replace(/\D/g, ''); // Extrai apenas o número da cabana (ex: "Cabana 03" -> "03")
+            const numLabel = cabin.name.replace(/\D/g, '');
             const isDatesSelected = checkIn && checkOut;
             const available = isDatesSelected && isCabinAvailable(cabin.id);
             const isSelected = selectedCabin?.id === cabin.id;
@@ -419,31 +403,31 @@ export default function AvailabilityCalendar() {
                 disabled={!available}
                 onClick={() => setSelectedCabin(cabin)}
                 className={cn(
-                  "h-12 w-full rounded-xl border flex flex-col items-center justify-center text-sm font-extrabold transition-all relative",
+                  "h-12 w-full rounded-xl border flex flex-col items-center justify-center text-xs font-bold transition-all duration-300 relative",
                   
-                  // Estado sem data selecionada (Cinza neutro)
-                  !isDatesSelected && "bg-stone-50 border-stone-200 text-stone-400 cursor-not-allowed",
+                  // Sem data
+                  !isDatesSelected && "bg-[#FAF7F2]/60 border-beige/40 text-stone-400 cursor-not-allowed",
                   
-                  // Ocupada / Indisponível no período (Vermelho / Riscado)
-                  isDatesSelected && !available && "bg-red-50/50 border-red-100 text-red-400 line-through cursor-not-allowed",
+                  // Ocupada
+                  isDatesSelected && !available && "bg-red-50/30 border-red-100/50 text-red-300 line-through cursor-not-allowed",
                   
-                  // Disponível (Verde)
-                  isDatesSelected && available && "bg-emerald-50 hover:bg-emerald-100 border-emerald-250 text-emerald-800 hover:scale-103",
+                  // Disponível (Verde Suave)
+                  isDatesSelected && available && "bg-emerald-50/50 hover:bg-emerald-100/70 border-emerald-200 text-emerald-800 hover:scale-103",
                   
-                  // Selecionada (Destaque dourado)
-                  isSelected && "ring-4 ring-amber-500 bg-emerald-100 border-amber-600 text-emerald-900 scale-105 shadow-md"
+                  // Selecionada (Destaque Ouro com borda)
+                  isSelected && "ring-4 ring-gold/20 bg-emerald-100 border-gold text-emerald-950 scale-105 shadow-md shadow-gold/5"
                 )}
                 title={
                   !isDatesSelected 
                     ? "Selecione as datas primeiro" 
                     : available 
-                      ? `${cabin.name} (Disponível - R$ ${cabin.price_per_night}/noite)` 
-                      : `${cabin.name} (Ocupada ou bloqueada no período)`
+                      ? `${cabin.name} (Livre - R$ ${cabin.price_per_night}/noite)` 
+                      : `${cabin.name} (Ocupada no período)`
                 }
               >
                 <span>{numLabel || cabin.name}</span>
                 {isSelected && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-600 rounded-full flex items-center justify-center text-[9px] text-white">
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gold rounded-full flex items-center justify-center text-[8px] text-white">
                     ✓
                   </span>
                 )}
@@ -452,65 +436,66 @@ export default function AvailabilityCalendar() {
           })}
         </div>
 
-        {/* Legendas dos Quadrinhos */}
-        <div className="flex flex-wrap gap-4 text-[11px] text-stone-500 justify-center pt-2">
+        {/* Legendas */}
+        <div className="flex flex-wrap gap-4 text-[10px] text-wood justify-center pt-2 font-light">
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded bg-stone-50 border border-stone-200" />
-            <span>Aguardando Período</span>
+            <div className="w-3 h-3 rounded bg-[#FAF7F2] border border-beige/40" />
+            <span>Aguardando datas</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded bg-red-50/50 border border-red-100 line-through" />
-            <span>Ocupado / Indisponível</span>
+            <div className="w-3 h-3 rounded bg-red-50/30 border border-red-100/50 line-through" />
+            <span>Ocupada</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded bg-emerald-50 border border-emerald-250" />
-            <span>Disponível para Locação</span>
+            <div className="w-3 h-3 rounded bg-emerald-50/50 border border-emerald-200" />
+            <span>Disponível</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded border-2 border-amber-650 bg-emerald-100 ring-2 ring-amber-500" />
-            <span>Sua Seleção</span>
+            <div className="w-3 h-3 rounded border-2 border-gold bg-emerald-100 ring-2 ring-gold/20" />
+            <span>Selecionada</span>
           </div>
         </div>
       </div>
 
-      {/* 3. RESUMO DA ESTADIA & SOLICITAÇÃO */}
-      <div className="p-6 bg-stone-50 dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      {/* 3. RESUMO DA ESTADIA & AÇÃO */}
+      <div className="p-6 bg-[#F5EFE4]/45 dark:bg-stone-900/50 border-t border-beige/40 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-0.5">
           {checkIn && !checkOut && (
-            <p className="text-xs text-stone-500">
-              Agora selecione o dia de <strong className="text-amber-700">Check-out (Saída)</strong> no calendário.
+            <p className="text-xs text-wood">
+              Selecione o dia de <strong className="text-gold">Saída (Check-out)</strong> no calendário acima.
             </p>
           )}
           {checkIn && checkOut && !selectedCabin && (
-            <p className="text-xs text-stone-600 dark:text-stone-400 font-semibold">
-              Período: {formatDateBR(checkIn)} a {formatDateBR(checkOut)} ({calculateNights(checkIn, checkOut)} noites). <span className="text-emerald-700 font-bold block mt-1">Selecione uma cabana em verde acima.</span>
+            <p className="text-xs text-wood font-medium">
+              Período: {formatDateBR(checkIn)} a {formatDateBR(checkOut)} ({calculateNights(checkIn, checkOut)} noites). <span className="text-emerald-800 font-bold block mt-0.5">Agora escolha o número da cabana livre (em verde) acima.</span>
             </p>
           )}
           {checkIn && checkOut && selectedCabin && (
-            <div className="text-xs text-stone-600 dark:text-stone-400">
-              <p className="font-semibold">
-                Período: <strong className="text-stone-850 dark:text-stone-200">{formatDateBR(checkIn)}</strong> a <strong className="text-stone-850 dark:text-stone-200">{formatDateBR(checkOut)}</strong>
+            <div className="text-xs text-wood space-y-0.5 font-light">
+              <p className="font-normal text-coffee dark:text-stone-200">
+                Estadia: <strong className="font-semibold">{formatDateBR(checkIn)}</strong> a <strong className="font-semibold">{formatDateBR(checkOut)}</strong> ({calculateNights(checkIn, checkOut)} noites)
               </p>
-              <p className="mt-0.5">
-                Cabana Selecionada: <strong className="text-emerald-800 dark:text-emerald-400 font-bold">{selectedCabin.name}</strong> • Diária: R$ {selectedCabin.price_per_night.toFixed(2)}
+              <p>
+                Cabana: <strong className="text-emerald-800 dark:text-emerald-400 font-semibold">{selectedCabin.name}</strong> • Diária: R$ {selectedCabin.price_per_night.toFixed(2)}
               </p>
-              <div className="text-[10px] text-stone-400 mt-1">
-                Valor estimado: R$ {(calculateNights(checkIn, checkOut) * selectedCabin.price_per_night).toFixed(2)} (por {calculateNights(checkIn, checkOut)} noites)
+              <div className="text-[10px] text-stone-400 font-medium">
+                Valor estimado: R$ {(calculateNights(checkIn, checkOut) * selectedCabin.price_per_night).toFixed(2)}
               </div>
             </div>
           )}
           {!checkIn && (
-            <p className="text-xs text-stone-500">Nenhum período selecionado.</p>
+            <p className="text-xs text-stone-500 font-light">Nenhum período selecionado.</p>
           )}
         </div>
         
+        {/* Botão Primário Dourado */}
         <button
           disabled={!checkIn || !checkOut || !selectedCabin}
           onClick={() => setIsModalOpen(true)}
           className={cn(
-            "px-6 py-3 rounded-full text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm",
+            "px-6 py-3 rounded-full text-white font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-sm shadow-gold/10 hover:shadow-lg",
             checkIn && checkOut && selectedCabin
-              ? "bg-amber-600 hover:bg-amber-700 hover:shadow-md cursor-pointer"
+              ? "bg-gold hover:bg-coffee hover:-translate-y-0.5 cursor-pointer"
               : "bg-stone-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed"
           )}
         >
@@ -519,161 +504,183 @@ export default function AvailabilityCalendar() {
         </button>
       </div>
 
-      {/* MODAL DE DADOS DO LEAD */}
-      {isModalOpen && selectedCabin && checkIn && checkOut && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-3xl shadow-2xl overflow-hidden border border-stone-250 dark:border-stone-800">
+      {/* MODAL DE DADOS DO LEAD (Framer Motion + AnimatePresence) */}
+      <AnimatePresence>
+        {isModalOpen && selectedCabin && checkIn && checkOut && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop com blur */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
             
-            {/* Modal Header */}
-            <div className="p-6 bg-gradient-to-r from-stone-900 to-stone-950 text-white flex justify-between items-center">
-              <div>
-                <h4 className="text-lg font-bold">Solicitar Pré-Agendamento</h4>
-                <p className="text-xs text-amber-400 mt-0.5">{selectedCabin.name}</p>
+            {/* Modal Card */}
+            <motion.div 
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-full max-w-lg bg-[#FFFDF9] dark:bg-[#2E1F17] rounded-[2rem] shadow-2xl overflow-hidden border border-beige/40 dark:border-stone-800 z-10"
+            >
+              {/* Header */}
+              <div className="p-6 bg-coffee text-white flex justify-between items-center border-b border-beige/10">
+                <div>
+                  <h4 className="text-lg font-serif font-bold text-gold">Solicitar Pré-Agendamento</h4>
+                  <p className="text-xs text-stone-300 font-light mt-0.5">{selectedCabin.name}</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-white/80 hover:text-gold text-2xl font-light transition-colors"
+                >
+                  &times;
+                </button>
               </div>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-white/80 hover:text-white text-2xl font-light"
-              >
-                &times;
-              </button>
-            </div>
 
-            {/* Modal Body / Form */}
-            {success ? (
-              <div className="p-8 text-center flex flex-col items-center justify-center">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mb-4">
-                  <Check className="w-8 h-8" />
-                </div>
-                <h5 className="text-xl font-bold text-stone-800 dark:text-stone-100">Solicitação Enviada!</h5>
-                <p className="text-xs text-stone-500 mt-2">
-                  Redirecionando para o WhatsApp da Fazenda Águas Claras...
-                </p>
-                <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 font-medium">
-                  <Clock className="w-4 h-4 animate-spin" /> Conectando ao WhatsApp
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitBooking} className="p-6 space-y-4">
-                
-                {/* Resumo */}
-                <div className="p-4 bg-stone-50 dark:bg-stone-950 rounded-2xl text-xs space-y-1.5 border border-stone-200 dark:border-stone-800">
-                  <div className="flex justify-between">
-                    <span className="text-stone-500 font-medium">Cabana:</span>
-                    <span className="font-bold text-stone-800 dark:text-stone-200">{selectedCabin.name}</span>
+              {/* Form / Content */}
+              {success ? (
+                <div className="p-8 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mb-4">
+                    <Check className="w-8 h-8" />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500 font-medium">Período:</span>
-                    <span className="font-bold text-stone-800 dark:text-stone-200">
-                      {formatDateBR(checkIn)} a {formatDateBR(checkOut)} ({calculateNights(checkIn, checkOut)} noites)
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500 font-medium">Valor Total Estimado:</span>
-                    <span className="font-bold text-emerald-800 dark:text-emerald-400">
-                      R$ {(calculateNights(checkIn, checkOut) * selectedCabin.price_per_night).toFixed(2)}
-                    </span>
+                  <h5 className="text-xl font-serif font-bold text-coffee dark:text-stone-100">Solicitação Enviada!</h5>
+                  <p className="text-xs text-stone-500 mt-2">
+                    Redirecionando para o WhatsApp da Fazenda Águas Claras...
+                  </p>
+                  <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 font-medium">
+                    <Clock className="w-4 h-4 animate-spin" /> Conectando ao WhatsApp
                   </div>
                 </div>
-
-                {errorMsg && (
-                  <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2 border border-red-200">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-550 dark:text-stone-400 mb-1">Nome Completo</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="Nome completo do hóspede"
-                        className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
+              ) : (
+                <form onSubmit={handleSubmitBooking} className="p-6 space-y-4">
+                  
+                  {/* Resumo */}
+                  <div className="p-4 bg-[#FAF7F2] dark:bg-stone-950/40 rounded-2xl text-xs space-y-1.5 border border-beige/30 dark:border-stone-800">
+                    <div className="flex justify-between">
+                      <span className="text-stone-500 font-medium">Acomodação:</span>
+                      <span className="font-bold text-coffee dark:text-stone-200">{selectedCabin.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-stone-500 font-medium">Período:</span>
+                      <span className="font-bold text-coffee dark:text-stone-200">
+                        {formatDateBR(checkIn)} a {formatDateBR(checkOut)} ({calculateNights(checkIn, checkOut)} noites)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-stone-500 font-medium">Valor Total:</span>
+                      <span className="font-bold text-emerald-800 dark:text-emerald-400">
+                        R$ {(calculateNights(checkIn, checkOut) * selectedCabin.price_per_night).toFixed(2)}
+                      </span>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-stone-550 dark:text-stone-400 mb-1">E-mail</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        placeholder="hospede@email.com"
-                        className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
+                  {errorMsg && (
+                    <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2 border border-red-200">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {/* Nome */}
+                    <div>
+                      <label className="block text-xs font-bold text-wood mb-1">Nome Completo</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
+                        <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={e => setName(e.target.value)}
+                          placeholder="Nome completo do hóspede"
+                          className="w-full pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-200"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-xs font-bold text-wood mb-1">E-mail</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          placeholder="hospede@email.com"
+                          className="w-full pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-200"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Telefone */}
+                    <div>
+                      <label className="block text-xs font-bold text-wood mb-1">WhatsApp</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
+                        <input
+                          type="tel"
+                          required
+                          value={phone}
+                          onChange={e => setPhone(e.target.value)}
+                          placeholder="Ex: (47) 99999-9999"
+                          className="w-full pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-200"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Hóspedes */}
+                    <div>
+                      <label className="block text-xs font-bold text-wood mb-1">Quantidade de Pessoas</label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
+                        <select
+                          value={numGuests}
+                          onChange={e => setNumGuests(Number(e.target.value))}
+                          className="w-full pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-200 appearance-none"
+                        >
+                          {Array.from({ length: selectedCabin.capacity }, (_, idx) => idx + 1).map(n => (
+                            <option key={n} value={n}>{n} {n === 1 ? 'pessoa' : 'pessoas'} (Máx: {selectedCabin.capacity})</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-stone-550 dark:text-stone-400 mb-1">WhatsApp</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        placeholder="(47) 99999-9999"
-                        className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
-                    </div>
+                  {/* Actions */}
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 py-3 border border-beige rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-3 bg-gold hover:bg-coffee text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 border border-gold/10"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" /> Enviando...
+                        </>
+                      ) : (
+                        <>
+                          Confirmar e Ir p/ WhatsApp
+                        </>
+                      )}
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-550 dark:text-stone-400 mb-1">Quantidade de Hóspedes</label>
-                    <div className="relative">
-                      <Users className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
-                      <select
-                        value={numGuests}
-                        onChange={e => setNumGuests(Number(e.target.value))}
-                        className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-stone-950 text-stone-800 dark:text-stone-200 appearance-none"
-                      >
-                        {Array.from({ length: selectedCabin.capacity }, (_, idx) => idx + 1).map(n => (
-                          <option key={n} value={n}>{n} {n === 1 ? 'pessoa' : 'pessoas'} (Máx: {selectedCabin.capacity})</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-3 border border-stone-250 dark:border-stone-800 rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-950 transition-colors"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Clock className="w-4 h-4 animate-spin" /> Processando...
-                      </>
-                    ) : (
-                      <>
-                        Confirmar e Ir p/ WhatsApp
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

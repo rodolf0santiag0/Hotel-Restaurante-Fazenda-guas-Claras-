@@ -1,26 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, 
   Users as UsersIcon, 
   Search, 
   Filter, 
   Download, 
-  Wrench, 
-  CheckCircle, 
-  XCircle, 
   RefreshCw, 
   Phone, 
   Mail, 
   CalendarRange, 
   Edit3,
   TrendingUp,
-  FileText,
-  Clock,
   ChevronLeft,
   ChevronRight,
-  Info
+  Clock,
+  CheckCircle,
+  Wrench,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { cn, formatDateBR, calculateNights } from '@/lib/utils';
@@ -67,24 +66,24 @@ export default function CRMAdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   
-  // Cabana Selecionada no Admin (Filtro à esquerda)
+  // Cabana Selecionada no Admin
   const [activeCabin, setActiveCabin] = useState<Cabin>(MOCK_CABINS[0]);
   
-  // Busca na lista de cabanas (esquerda)
+  // Busca na lista de cabanas
   const [cabinSearchTerm, setCabinSearchTerm] = useState<string>('');
   
-  // Estados de Filtros e Busca de Clientes (aba Clientes)
+  // Estados de Filtros e Busca de Clientes
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   
-  // Controle de Mês no Gantt/Calendário
+  // Controle de Mês
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<number>(6); // Julho (0-indexed: 6)
 
   // Loading
   const [loading, setLoading] = useState<boolean>(true);
   
-  // Modal de Ação Rápida (Administrador clica em célula no Gantt)
+  // Modal de Ação Rápida
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
   const [selectedDayInfo, setSelectedDayInfo] = useState<{
     dateStr: string;
@@ -101,12 +100,11 @@ export default function CRMAdminPage() {
   const [adminNotes, setAdminNotes] = useState<string>('');
   const [updatingBooking, setUpdatingBooking] = useState<boolean>(false);
 
-  // Inicializar e carregar dados do Supabase
+  // Inicializar e carregar dados
   const loadDatabaseData = async () => {
     try {
       setLoading(true);
       
-      // Carregar Cabanas do banco
       const { data: dbCabins, error: cabinsErr } = await supabase
         .from('cabins')
         .select('*')
@@ -114,12 +112,10 @@ export default function CRMAdminPage() {
       
       if (!cabinsErr && dbCabins && dbCabins.length > 0) {
         setCabins(dbCabins);
-        // Atualiza a cabana ativa caso sua referência tenha mudado
         const currentActive = dbCabins.find(c => c.id === activeCabin.id) || dbCabins[0];
         setActiveCabin(currentActive);
       }
 
-      // Carregar Reservas
       const { data: dbBookings, error: bookingsErr } = await supabase
         .from('bookings')
         .select(`
@@ -127,7 +123,6 @@ export default function CRMAdminPage() {
           clients (*)
         `);
       
-      // Carregar Leads
       const { data: dbClients, error: clientsErr } = await supabase
         .from('clients')
         .select('*')
@@ -155,7 +150,6 @@ export default function CRMAdminPage() {
     loadDatabaseData();
   }, []);
 
-  // Cria reservas fictícias para demonstração se o banco estiver vazio
   const generateMockBookings = () => {
     const today = new Date();
     const y = today.getFullYear();
@@ -176,7 +170,7 @@ export default function CRMAdminPage() {
       },
       {
         id: 'b2',
-        cabin_id: '1', // Cabana Vale Verde
+        cabin_id: '1',
         client_id: 'c2',
         check_in_date: `${y}-${m}-12`,
         check_out_date: `${y}-${m}-15`,
@@ -188,7 +182,7 @@ export default function CRMAdminPage() {
       },
       {
         id: 'b3',
-        cabin_id: '2', // Cabana Recanto da Serra
+        cabin_id: '2',
         client_id: 'c2',
         check_in_date: `${y}-${m}-04`,
         check_out_date: `${y}-${m}-08`,
@@ -200,7 +194,7 @@ export default function CRMAdminPage() {
       },
       {
         id: 'b4',
-        cabin_id: '3', // Cabana Sol Nascente
+        cabin_id: '3',
         client_id: null,
         check_in_date: `${y}-${m}-10`,
         check_out_date: `${y}-${m}-15`,
@@ -225,13 +219,11 @@ export default function CRMAdminPage() {
     setBookings(mockB);
   };
 
-  // Gerar dias do mês selecionado
   const getDaysInMonth = () => {
     const daysCount = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     return Array.from({ length: daysCount }, (_, i) => i + 1);
   };
 
-  // Retorna reserva em vigor para uma cabana em um dia específico
   const getBookingForDay = (cabinId: string, day: number) => {
     const monthStr = String(selectedMonth + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
@@ -243,7 +235,6 @@ export default function CRMAdminPage() {
     }) || null;
   };
 
-  // Manipular clique em um dia
   const handleCellClick = (cabin: Cabin, day: number) => {
     const monthStr = String(selectedMonth + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
@@ -276,7 +267,6 @@ export default function CRMAdminPage() {
     setIsDetailModalOpen(true);
   };
 
-  // Salvar alterações de reserva (Criar / Editar / Cancelar)
   const handleSaveBookingAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDayInfo) return;
@@ -358,7 +348,6 @@ export default function CRMAdminPage() {
     }
   };
 
-  // Exportar Clientes para CSV
   const handleExportClientsCSV = () => {
     const headers = 'Nome,Email,Telefone,Status,Data de Criacao\n';
     const rows = filteredClients.map(c => 
@@ -380,7 +369,6 @@ export default function CRMAdminPage() {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  // Filtros
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           client.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -395,7 +383,6 @@ export default function CRMAdminPage() {
 
   const daysInMonth = getDaysInMonth();
 
-  // Verifica ocupação da cabana ativa HOJE
   const getCabinStatusToday = (cabinId: string) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const match = bookings.find(b => 
@@ -408,12 +395,12 @@ export default function CRMAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-bgPrimary dark:bg-[#23170F] p-4 md:p-8 font-sans selection:bg-gold/25 selection:text-coffee">
       
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-stone-200 dark:border-stone-850 pb-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-beige/40 pb-6">
         <div className="flex items-center gap-3">
-          <div>
+          <div className="transition-transform duration-300 hover:scale-103">
             <img 
               src="/images/logo.png?v=3" 
               alt="Logo Fazenda Águas Claras"
@@ -421,20 +408,20 @@ export default function CRMAdminPage() {
             />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">Painel CRM & Agendamentos</h1>
-            <p className="text-xs text-stone-500">Fazenda Águas Claras • Gestão Administrativa</p>
+            <h1 className="text-2xl font-serif font-bold text-coffee dark:text-stone-100">Painel CRM & Agendamentos</h1>
+            <p className="text-xs text-[#B58346] font-light">Fazenda Águas Claras • Gestão Administrativa</p>
           </div>
         </div>
 
         {/* Abas */}
-        <div className="flex bg-stone-200 dark:bg-stone-900 p-1 rounded-xl">
+        <div className="flex bg-[#EADDC8]/40 dark:bg-stone-900/50 p-1.5 rounded-2xl border border-beige/30">
           <button
             onClick={() => setActiveTab('agendamentos')}
             className={cn(
-              "px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2",
+              "px-5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 flex items-center gap-2",
               activeTab === 'agendamentos' 
-                ? "bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 shadow-sm"
-                : "text-stone-500 hover:text-stone-700"
+                ? "bg-gold text-white shadow-sm"
+                : "text-wood hover:text-coffee dark:text-stone-400"
             )}
           >
             <CalendarRange className="w-4 h-4" />
@@ -443,10 +430,10 @@ export default function CRMAdminPage() {
           <button
             onClick={() => setActiveTab('clientes')}
             className={cn(
-              "px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2",
+              "px-5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 flex items-center gap-2",
               activeTab === 'clientes' 
-                ? "bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 shadow-sm"
-                : "text-stone-500 hover:text-stone-700"
+                ? "bg-gold text-white shadow-sm"
+                : "text-wood hover:text-coffee dark:text-stone-400"
             )}
           >
             <UsersIcon className="w-4 h-4" />
@@ -456,32 +443,31 @@ export default function CRMAdminPage() {
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-850 shadow-md overflow-hidden">
+      <main className="bg-bgCard dark:bg-[#2E1F17] rounded-3xl border border-beige/40 dark:border-stone-800 shadow-md overflow-hidden">
         
-        {/* VIEW 1: AGENDAMENTOS INDIVIDUAIS (SPLIT-SCREEN) */}
+        {/* VIEW 1: AGENDAMENTOS */}
         {activeTab === 'agendamentos' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-stone-200 dark:divide-stone-800 min-h-[600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-beige/40 dark:divide-stone-800 min-h-[600px]">
             
-            {/* Coluna Esquerda: Seletor de Cabanas */}
-            <div className="lg:col-span-4 p-6 space-y-6 bg-stone-50/50 dark:bg-stone-900/10">
+            {/* Coluna Esquerda: Seletor */}
+            <div className="lg:col-span-4 p-6 space-y-6 bg-[#FAF7F2]/45 dark:bg-stone-950/20">
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider">Acomodações</h3>
-                <p className="text-xs text-stone-500">Selecione uma cabana para exibir os dias de ocupação</p>
+                <h3 className="text-xs font-serif font-bold text-coffee dark:text-stone-300 uppercase tracking-widest">Acomodações</h3>
+                <p className="text-[11px] text-wood font-light">Selecione uma cabana para exibir a ocupação</p>
               </div>
 
-              {/* Busca de Cabana */}
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-stone-400" />
+                <Search className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
                 <input
                   type="text"
-                  placeholder="Filtrar por nome..."
+                  placeholder="Filtrar cabanas..."
                   value={cabinSearchTerm}
                   onChange={e => setCabinSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700 dark:bg-stone-900 text-stone-800 dark:text-stone-200"
+                  className="w-full pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gold bg-bgCard dark:bg-stone-950 text-coffee dark:text-stone-200"
                 />
               </div>
 
-              {/* Lista das Cabanas */}
+              {/* Lista */}
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                 {filteredCabins.map(cabin => {
                   const statusToday = getCabinStatusToday(cabin.id);
@@ -492,29 +478,28 @@ export default function CRMAdminPage() {
                       key={cabin.id}
                       onClick={() => setActiveCabin(cabin)}
                       className={cn(
-                        "w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3",
+                        "w-full p-4 rounded-2xl border text-left transition-all duration-300 flex items-center justify-between gap-3",
                         isSelected 
-                          ? "bg-emerald-800 border-emerald-800 text-white shadow-md shadow-emerald-950/10" 
-                          : "bg-white dark:bg-stone-950 border-stone-200 dark:border-stone-800 hover:border-emerald-750 hover:bg-emerald-900/5 text-stone-800 dark:text-stone-250"
+                          ? "bg-gold border-gold text-white shadow-md shadow-gold/10" 
+                          : "bg-bgCard dark:bg-stone-900 border-beige/30 dark:border-stone-800 hover:border-gold/30 hover:bg-gold/5 text-coffee dark:text-stone-200"
                       )}
                     >
                       <div className="space-y-1">
-                        <div className="font-bold text-sm">{cabin.name}</div>
+                        <div className="font-serif font-bold text-sm">{cabin.name}</div>
                         <div className={cn(
-                          "text-[10px]",
-                          isSelected ? "text-emerald-200" : "text-stone-400"
+                          "text-[10px] font-light",
+                          isSelected ? "text-stone-200" : "text-wood"
                         )}>
-                          Capacidade: {cabin.capacity}p • Diária: R$ {cabin.price_per_night}
+                          Capacidade: {cabin.capacity}p • R$ {cabin.price_per_night}
                         </div>
                       </div>
 
-                      {/* Badge de status de ocupação hoje */}
                       <span className={cn(
-                        "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border",
-                        statusToday === 'free' && (isSelected ? "bg-emerald-700/50 border-emerald-600 text-white" : "bg-emerald-50 border-emerald-200 text-emerald-800"),
-                        statusToday === 'confirmado' && (isSelected ? "bg-blue-800/50 border-blue-600 text-white" : "bg-blue-50 border-blue-200 text-blue-800"),
-                        statusToday === 'pendente' && (isSelected ? "bg-amber-800/50 border-amber-600 text-white" : "bg-amber-50 border-amber-200 text-amber-800"),
-                        statusToday === 'manutencao' && (isSelected ? "bg-red-800/50 border-red-600 text-white" : "bg-red-50 border-red-200 text-red-800")
+                        "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                        statusToday === 'free' && (isSelected ? "bg-white/20 border-white/30 text-white" : "bg-emerald-50 border-emerald-100 text-emerald-800"),
+                        statusToday === 'confirmado' && (isSelected ? "bg-white/20 border-white/30 text-white" : "bg-blue-50 border-blue-100 text-blue-800"),
+                        statusToday === 'pendente' && (isSelected ? "bg-white/20 border-white/30 text-white" : "bg-amber-50 border-amber-100 text-amber-800"),
+                        statusToday === 'manutencao' && (isSelected ? "bg-white/20 border-white/30 text-white" : "bg-red-50 border-red-100 text-red-800")
                       )}>
                         {statusToday === 'free' ? 'Livre' : statusToday === 'manutencao' ? 'Manut' : 'Ocup'}
                       </span>
@@ -524,27 +509,27 @@ export default function CRMAdminPage() {
               </div>
             </div>
 
-            {/* Coluna Direita: Ocupação Detalhada (Calendário e Linha de Tempo) */}
+            {/* Coluna Direita: Ocupação Detalhada */}
             <div className="lg:col-span-8 p-6 space-y-6">
               
-              {/* Header da Cabana Ativa */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-stone-100 dark:border-stone-800">
+              {/* Header Cabana */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-beige/20 dark:border-stone-800">
                 <div>
-                  <h2 className="text-xl font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
-                    <CalendarIcon className="w-5.5 h-5.5 text-emerald-850" />
+                  <h2 className="text-xl font-serif font-bold text-coffee dark:text-stone-200 flex items-center gap-2">
+                    <CalendarIcon className="w-5.5 h-5.5 text-gold" />
                     Ocupação: {activeCabin.name}
                   </h2>
-                  <p className="text-xs text-stone-500 leading-relaxed max-w-md">
+                  <p className="text-xs text-wood font-light leading-relaxed max-w-md mt-0.5">
                     {activeCabin.description || 'Cabana padrão de luxo com lareira e hidromassagem.'}
                   </p>
                 </div>
 
                 {/* Controles de Mês */}
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <select
                     value={selectedMonth}
                     onChange={e => setSelectedMonth(Number(e.target.value))}
-                    className="px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-xs focus:outline-none dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-semibold"
+                    className="px-3.5 py-2 border border-beige/40 dark:border-stone-800 rounded-xl text-xs focus:outline-none bg-bgCard dark:bg-stone-900 text-coffee dark:text-stone-200 font-semibold"
                   >
                     {monthNames.map((name, idx) => (
                       <option key={idx} value={idx}>{name}</option>
@@ -554,7 +539,7 @@ export default function CRMAdminPage() {
                   <select
                     value={selectedYear}
                     onChange={e => setSelectedYear(Number(e.target.value))}
-                    className="px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-xs focus:outline-none dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-semibold"
+                    className="px-3.5 py-2 border border-beige/40 dark:border-stone-800 rounded-xl text-xs focus:outline-none bg-bgCard dark:bg-stone-900 text-coffee dark:text-stone-200 font-semibold"
                   >
                     <option value={2026}>2026</option>
                     <option value={2027}>2027</option>
@@ -562,7 +547,7 @@ export default function CRMAdminPage() {
                   
                   <button
                     onClick={loadDatabaseData}
-                    className="p-2 border border-stone-200 dark:border-stone-800 rounded-xl text-stone-600 hover:text-stone-800 hover:bg-stone-50 dark:text-stone-400 dark:hover:bg-stone-950 transition-all"
+                    className="p-2 border border-beige/40 dark:border-stone-800 rounded-xl text-wood hover:text-coffee hover:bg-stone-50 dark:hover:bg-stone-950 transition-all duration-200"
                     title="Atualizar Dados"
                   >
                     <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
@@ -570,29 +555,29 @@ export default function CRMAdminPage() {
                 </div>
               </div>
 
-              {/* 1. VISÃO LINHA DO TEMPO HORIZONTAL (GANTT INDIVIDUALE) */}
+              {/* 1. VISÃO LINHA DO TEMPO */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-emerald-800" /> Linha do Tempo Mensal
+                <h4 className="text-xs font-serif font-bold text-wood uppercase tracking-widest flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-gold" /> Linha do Tempo Mensal
                 </h4>
-                <div className="overflow-x-auto border border-stone-200 dark:border-stone-800 rounded-2xl">
+                <div className="overflow-x-auto border border-beige/30 dark:border-stone-800 rounded-2xl shadow-sm">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-stone-50/50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800">
-                        <th className="px-3 py-2.5 text-left text-xs font-bold text-stone-400 min-w-[120px]">Dia do Mês</th>
+                      <tr className="bg-[#FAF7F2]/45 dark:bg-stone-950 border-b border-beige/30 dark:border-stone-800">
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-wood min-w-[120px]">Dia</th>
                         {daysInMonth.map(day => (
-                          <th key={day} className="px-1.5 py-2 text-center text-xs font-bold text-stone-400 border-l border-stone-200 dark:border-stone-850 min-w-[32px]">
+                          <th key={day} className="px-1.5 py-2.5 text-center text-xs font-bold text-wood border-l border-beige/20 dark:border-stone-800 min-w-[32px]">
                             {day}
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="hover:bg-stone-50/20">
-                        <td className="px-3 py-4 text-xs font-bold text-stone-700 dark:text-stone-300">Status</td>
+                      <tr className="hover:bg-stone-50/10">
+                        <td className="px-4 py-4 text-xs font-bold text-coffee dark:text-stone-300">Status</td>
                         {daysInMonth.map(day => {
                           const booking = getBookingForDay(activeCabin.id, day);
-                          let cellBg = "bg-transparent hover:bg-emerald-50/30";
+                          let cellBg = "bg-transparent hover:bg-gold/5";
                           
                           if (booking) {
                             if (booking.status === 'confirmado') cellBg = "bg-emerald-500 text-white hover:bg-emerald-600";
@@ -605,7 +590,7 @@ export default function CRMAdminPage() {
                               key={day}
                               onClick={() => handleCellClick(activeCabin, day)}
                               className={cn(
-                                "h-11 text-center text-[10px] cursor-pointer transition-all border-l border-stone-200 dark:border-stone-800",
+                                "h-11 text-center text-[10px] cursor-pointer transition-all duration-200 border-l border-beige/20 dark:border-stone-800",
                                 cellBg
                               )}
                               title={booking ? `${booking.clients?.name || 'Bloqueio'} (${booking.status})` : 'Disponível - Clique para gerenciar'}
@@ -626,15 +611,14 @@ export default function CRMAdminPage() {
                 </div>
               </div>
 
-              {/* 2. VISÃO GRADE CALENDÁRIO MENSAL INTEGRADA */}
+              {/* 2. VISÃO GRADE CALENDÁRIO */}
               <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <CalendarIcon className="w-4 h-4 text-emerald-800" /> Visão Calendário
+                <h4 className="text-xs font-serif font-bold text-wood uppercase tracking-widest flex items-center gap-1.5">
+                  <CalendarIcon className="w-4 h-4 text-gold" /> Visão Calendário
                 </h4>
                 
-                {/* Lógica de renderização de calendário clássico de 7 colunas */}
-                <div className="border border-stone-200 dark:border-stone-800 rounded-3xl p-6 bg-white dark:bg-stone-950/40">
-                  <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-stone-400 mb-3">
+                <div className="border border-beige/30 dark:border-stone-800 rounded-3xl p-6 bg-[#FAF7F2]/45 dark:bg-stone-950/20 shadow-sm">
+                  <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-wood mb-3">
                     <div>Dom</div>
                     <div>Seg</div>
                     <div>Ter</div>
@@ -645,20 +629,18 @@ export default function CRMAdminPage() {
                   </div>
                   
                   <div className="grid grid-cols-7 gap-2">
-                    {/* Calcula offset do mês */}
                     {Array.from({ length: new Date(selectedYear, selectedMonth, 1).getDay() }).map((_, idx) => (
-                      <div key={`offset-${idx}`} className="h-12 bg-stone-50/20 dark:bg-stone-900/10 rounded-xl" />
+                      <div key={`offset-${idx}`} className="h-12 bg-[#FAF7F2]/10 dark:bg-stone-900/10 rounded-xl" />
                     ))}
                     
-                    {/* Renderiza os dias do mês */}
                     {daysInMonth.map(day => {
                       const booking = getBookingForDay(activeCabin.id, day);
-                      let cellClass = "bg-stone-50 hover:bg-stone-100 dark:bg-stone-900/60 dark:hover:bg-stone-900 border border-stone-200/40 dark:border-stone-800 text-stone-750 dark:text-stone-300";
+                      let cellClass = "bg-bgCard hover:bg-beige/10 dark:bg-stone-900 dark:hover:bg-stone-800 border border-beige/20 dark:border-stone-800 text-coffee dark:text-stone-300";
                       
                       if (booking) {
-                        if (booking.status === 'confirmado') cellClass = "bg-emerald-550 border-emerald-550 text-white hover:bg-emerald-600";
-                        else if (booking.status === 'pendente') cellClass = "bg-amber-400 border-amber-400 text-stone-900 hover:bg-amber-500";
-                        else if (booking.status === 'manutencao') cellClass = "bg-red-500 border-red-500 text-white [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.15)_2px,rgba(255,255,255,0.15)_5px)] hover:opacity-90";
+                        if (booking.status === 'confirmado') cellClass = "bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
+                        else if (booking.status === 'pendente') cellClass = "bg-amber-400 border-amber-400 text-stone-900 hover:bg-amber-500 shadow-sm";
+                        else if (booking.status === 'manutencao') cellClass = "bg-red-500 border-red-500 text-white [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.15)_2px,rgba(255,255,255,0.15)_5px)] hover:opacity-90 shadow-sm";
                       }
 
                       return (
@@ -666,7 +648,7 @@ export default function CRMAdminPage() {
                           key={day}
                           onClick={() => handleCellClick(activeCabin, day)}
                           className={cn(
-                            "h-12 rounded-xl flex flex-col justify-between p-1.5 text-xs font-bold transition-all relative border",
+                            "h-12 rounded-xl flex flex-col justify-between p-1.5 text-xs font-bold transition-all duration-200 relative border",
                             cellClass
                           )}
                         >
@@ -684,14 +666,14 @@ export default function CRMAdminPage() {
               </div>
 
               {/* Legenda */}
-              <div className="flex flex-wrap gap-6 justify-center text-[11px] font-semibold text-stone-500 border-t border-stone-100 dark:border-stone-850 pt-4">
+              <div className="flex flex-wrap gap-5 justify-center text-[10px] uppercase font-bold tracking-wider text-wood border-t border-beige/20 dark:border-stone-800 pt-4">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded bg-stone-50 border border-stone-200" />
+                  <div className="w-3.5 h-3.5 rounded bg-bgCard dark:bg-stone-900 border border-beige/40 dark:border-stone-800" />
                   <span>Disponível</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3.5 h-3.5 rounded bg-amber-400" />
-                  <span>Pré-Agendamento Pendente</span>
+                  <span>Pré-Agendamento</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3.5 h-3.5 rounded bg-emerald-500" />
@@ -707,33 +689,33 @@ export default function CRMAdminPage() {
           </div>
         )}
 
-        {/* VIEW 2: LEADS / CLIENTES (DATA TABLE) */}
+        {/* VIEW 2: CLIENTES */}
         {activeTab === 'clientes' && (
           <div className="p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-lg font-bold text-stone-800 dark:text-stone-200">Base de Clientes e Leads</h2>
-                <p className="text-xs text-stone-500">Total de {filteredClients.length} leads cadastrados</p>
+                <h2 className="text-lg font-serif font-bold text-coffee dark:text-stone-200">Base de Clientes e Leads</h2>
+                <p className="text-xs text-wood font-light">Total de {filteredClients.length} leads cadastrados</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-stone-400" />
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
                   <input
                     type="text"
                     placeholder="Buscar nome, e-mail..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-stone-900 text-stone-800 dark:text-stone-200 w-[200px]"
+                    className="pl-10 pr-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gold bg-bgCard dark:bg-stone-900 text-coffee dark:text-stone-200 w-[200px]"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 border border-stone-200 dark:border-stone-800 p-2 rounded-xl text-sm bg-stone-50 dark:bg-stone-900 text-stone-700 dark:text-stone-300">
-                  <Filter className="w-4 h-4 text-stone-400" />
+                <div className="flex items-center gap-1.5 border border-beige/40 dark:border-stone-800 p-2.5 rounded-xl text-xs bg-[#FAF7F2]/45 dark:bg-stone-900 text-coffee dark:text-stone-300">
+                  <Filter className="w-4 h-4 text-[#B58346]" />
                   <select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="focus:outline-none bg-transparent font-medium"
+                    className="focus:outline-none bg-transparent font-semibold"
                   >
                     <option value="todos">Todos Status</option>
                     <option value="novo">Novo</option>
@@ -742,9 +724,10 @@ export default function CRMAdminPage() {
                   </select>
                 </div>
 
+                {/* Botão Primário Dourado */}
                 <button
                   onClick={handleExportClientsCSV}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition-all"
+                  className="px-5 py-2.5 bg-gold hover:bg-coffee text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all duration-300"
                 >
                   <Download className="w-4 h-4" />
                   Exportar CSV
@@ -752,43 +735,43 @@ export default function CRMAdminPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto border border-stone-200 dark:border-stone-800 rounded-2xl">
+            <div className="overflow-x-auto border border-beige/30 dark:border-stone-800 rounded-2xl shadow-sm">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">
+                  <tr className="bg-[#FAF7F2]/45 dark:bg-stone-950 border-b border-beige/30 dark:border-stone-800 text-left text-[10px] font-bold text-wood uppercase tracking-widest">
                     <th className="px-6 py-4">Nome</th>
                     <th className="px-6 py-4">Contato</th>
                     <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Criado em</th>
+                    <th className="px-6 py-4 font-serif">Criado em</th>
                     <th className="px-6 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                <tbody className="divide-y divide-beige/20 dark:divide-stone-800">
                   {filteredClients.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-sm text-stone-400">
+                      <td colSpan={5} className="text-center py-12 text-sm text-stone-400 font-light">
                         Nenhum lead encontrado com os filtros aplicados.
                       </td>
                     </tr>
                   ) : (
                     filteredClients.map(client => (
-                      <tr key={client.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-900/40 text-sm">
-                        <td className="px-6 py-4 font-bold text-stone-800 dark:text-stone-200">
+                      <tr key={client.id} className="hover:bg-stone-50/10 text-xs">
+                        <td className="px-6 py-4 font-bold text-coffee dark:text-stone-200">
                           {client.name}
                         </td>
                         <td className="px-6 py-4 space-y-1">
-                          <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
+                          <div className="flex items-center gap-2 text-wood dark:text-stone-400">
                             <Mail className="w-3.5 h-3.5" />
                             <span>{client.email}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
+                          <div className="flex items-center gap-2 text-wood dark:text-stone-400">
                             <Phone className="w-3.5 h-3.5" />
                             <span>{client.phone}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className={cn(
-                            "px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
+                            "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
                             client.status === 'novo' && "bg-blue-50 text-blue-800 border border-blue-100",
                             client.status === 'em contato' && "bg-amber-50 text-amber-800 border border-amber-100",
                             client.status === 'convertido' && "bg-emerald-50 text-emerald-800 border border-emerald-100"
@@ -796,7 +779,7 @@ export default function CRMAdminPage() {
                             {client.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-stone-500">
+                        <td className="px-6 py-4 text-stone-500 font-light">
                           {formatDateBR(client.created_at.split('T')[0])}
                         </td>
                         <td className="px-6 py-4 text-right space-x-2">
@@ -816,7 +799,7 @@ export default function CRMAdminPage() {
                               await supabase.from('clients').update({ status: nextStatus }).eq('id', client.id);
                               loadDatabaseData();
                             }}
-                            className="inline-flex items-center justify-center p-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"
+                            className="inline-flex items-center justify-center p-2 rounded-xl bg-[#FAF7F2] border border-beige/40 text-coffee hover:bg-beige/10 transition-colors"
                             title="Alternar Status"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -832,131 +815,149 @@ export default function CRMAdminPage() {
         )}
       </main>
 
-      {/* MODAL DETALHE/CRIAÇÃO DE RESERVA (ADMIN DRAWER) */}
-      {isDetailModalOpen && selectedDayInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-white dark:bg-stone-900 rounded-3xl shadow-2xl overflow-hidden border border-stone-200 dark:border-stone-800">
-            <div className="p-6 bg-gradient-to-r from-emerald-800 to-teal-950 text-white flex justify-between items-center">
-              <div>
-                <h4 className="text-lg font-bold">
-                  {selectedDayInfo.booking ? 'Gerenciar Reserva' : 'Bloquear / Agendar'}
-                </h4>
-                <p className="text-xs text-emerald-100 mt-0.5">
-                  {selectedDayInfo.cabin.name} • {formatDateBR(selectedDayInfo.dateStr)}
-                </p>
-              </div>
-              <button 
-                onClick={() => setIsDetailModalOpen(false)}
-                className="text-white hover:text-stone-200 text-2xl font-light"
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBookingAdmin} className="p-6 space-y-4">
-              <div className="space-y-3">
-                {adminBookingStatus !== 'manutencao' && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">Nome do Hóspede</label>
-                      <input
-                        type="text"
-                        required
-                        value={adminGuestName}
-                        onChange={e => setAdminGuestName(e.target.value)}
-                        placeholder="Nome completo do lead/cliente"
-                        className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">WhatsApp</label>
-                      <input
-                        type="text"
-                        required
-                        value={adminGuestPhone}
-                        onChange={e => setAdminGuestPhone(e.target.value)}
-                        placeholder="(47) 99999-9999"
-                        className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">E-mail</label>
-                      <input
-                        type="email"
-                        required
-                        value={adminGuestEmail}
-                        onChange={e => setAdminGuestEmail(e.target.value)}
-                        placeholder="cliente@email.com"
-                        className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                      />
-                    </div>
-                  </>
-                )}
-
+      {/* MODAL DETALHE/CRIAÇÃO DE RESERVA (Framer Motion + AnimatePresence) */}
+      <AnimatePresence>
+        {isDetailModalOpen && selectedDayInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            {/* Modal Card */}
+            <motion.div 
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              className="relative w-full max-w-md bg-bgCard dark:bg-[#2E1F17] rounded-[2rem] shadow-2xl overflow-hidden border border-beige/40 dark:border-stone-800 z-10"
+            >
+              <div className="p-6 bg-coffee text-white flex justify-between items-center border-b border-beige/10">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">Status da Ocupação</label>
-                  <select
-                    value={adminBookingStatus}
-                    onChange={e => setAdminBookingStatus(e.target.value as BookingStatus)}
-                    className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                  >
-                    <option value="pendente">Pendente (Pré-Reserva)</option>
-                    <option value="confirmado">Confirmado</option>
-                    <option value="manutencao">Bloqueio p/ Manutenção</option>
-                    {selectedDayInfo.booking && (
-                      <option value="cancelado">Cancelar Agendamento (Liberar Dia)</option>
-                    )}
-                  </select>
+                  <h4 className="text-lg font-serif font-bold text-gold">
+                    {selectedDayInfo.booking ? 'Gerenciar Reserva' : 'Bloquear / Agendar'}
+                  </h4>
+                  <p className="text-xs text-stone-300 font-light mt-0.5">
+                    {selectedDayInfo.cabin.name} • {formatDateBR(selectedDayInfo.dateStr)}
+                  </p>
                 </div>
+                <button 
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="text-white hover:text-gold text-2xl font-light transition-colors"
+                >
+                  &times;
+                </button>
+              </div>
 
-                {adminBookingStatus !== 'manutencao' && (
+              <form onSubmit={handleSaveBookingAdmin} className="p-6 space-y-4">
+                <div className="space-y-3">
+                  {adminBookingStatus !== 'manutencao' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-wood mb-1">Nome do Hóspede</label>
+                        <input
+                          type="text"
+                          required
+                          value={adminGuestName}
+                          onChange={e => setAdminGuestName(e.target.value)}
+                          placeholder="Nome completo"
+                          className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-wood mb-1">WhatsApp</label>
+                        <input
+                          type="text"
+                          required
+                          value={adminGuestPhone}
+                          onChange={e => setAdminGuestPhone(e.target.value)}
+                          placeholder="(47) 99999-9999"
+                          className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-wood mb-1">E-mail</label>
+                        <input
+                          type="email"
+                          required
+                          value={adminGuestEmail}
+                          onChange={e => setAdminGuestEmail(e.target.value)}
+                          placeholder="cliente@email.com"
+                          className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div>
-                    <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">Quantidade de Hóspedes</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={selectedDayInfo.cabin.capacity}
-                      value={adminNumGuests}
-                      onChange={e => setAdminNumGuests(Number(e.target.value))}
-                      className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200"
+                    <label className="block text-xs font-bold text-wood mb-1">Status da Ocupação</label>
+                    <select
+                      value={adminBookingStatus}
+                      onChange={e => setAdminBookingStatus(e.target.value as BookingStatus)}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                    >
+                      <option value="pendente">Pendente (Pré-Reserva)</option>
+                      <option value="confirmado">Confirmado</option>
+                      <option value="manutencao">Bloqueio p/ Manutenção</option>
+                      {selectedDayInfo.booking && (
+                        <option value="cancelado">Cancelar Agendamento (Liberar Dia)</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {adminBookingStatus !== 'manutencao' && (
+                    <div>
+                      <label className="block text-xs font-bold text-wood mb-1">Quantidade de Hóspedes</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={selectedDayInfo.cabin.capacity}
+                        value={adminNumGuests}
+                        onChange={e => setAdminNumGuests(Number(e.target.value))}
+                        className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-wood mb-1">Notas Administrativas</label>
+                    <textarea
+                      value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)}
+                      placeholder="Detalhes adicionais..."
+                      rows={3}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 resize-none"
                     />
                   </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">Notas Administrativas</label>
-                  <textarea
-                    value={adminNotes}
-                    onChange={e => setAdminNotes(e.target.value)}
-                    placeholder="Detalhes adicionais, solicitações especiais..."
-                    rows={3}
-                    className="w-full px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl text-sm focus:outline-none dark:bg-stone-950 text-stone-800 dark:text-stone-200 resize-none"
-                  />
                 </div>
-              </div>
 
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="flex-1 py-3 border border-stone-200 dark:border-stone-800 rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-950 transition-colors"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingBooking}
-                  className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {updatingBooking ? 'Salvando...' : 'Confirmar'}
-                </button>
-              </div>
-            </form>
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailModalOpen(false)}
+                    className="flex-1 py-3 border border-beige rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingBooking}
+                    className="flex-1 py-3 bg-gold hover:bg-coffee text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 border border-gold/10"
+                  >
+                    {updatingBooking ? 'Salvando...' : 'Confirmar'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
