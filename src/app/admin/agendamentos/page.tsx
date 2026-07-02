@@ -100,6 +100,50 @@ export default function CRMAdminPage() {
   const [adminNotes, setAdminNotes] = useState<string>('');
   const [updatingBooking, setUpdatingBooking] = useState<boolean>(false);
 
+  // Estados para Edição de Cabana
+  const [isEditCabinModalOpen, setIsEditCabinModalOpen] = useState<boolean>(false);
+  const [editCabinName, setEditCabinName] = useState<string>('');
+  const [editCabinCapacity, setEditCabinCapacity] = useState<number>(2);
+  const [editCabinPrice, setEditCabinPrice] = useState<number>(350);
+  const [editCabinDescription, setEditCabinDescription] = useState<string>('');
+  const [savingCabin, setSavingCabin] = useState<boolean>(false);
+
+  const handleOpenEditCabin = (cabin: Cabin) => {
+    setEditCabinName(cabin.name);
+    setEditCabinCapacity(cabin.capacity);
+    setEditCabinPrice(cabin.price_per_night);
+    setEditCabinDescription(cabin.description || '');
+    setIsEditCabinModalOpen(true);
+  };
+
+  const handleSaveCabin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeCabin) return;
+
+    setSavingCabin(true);
+    try {
+      const { error } = await supabase
+        .from('cabins')
+        .update({
+          name: editCabinName,
+          capacity: editCabinCapacity,
+          price_per_night: editCabinPrice,
+          description: editCabinDescription
+        })
+        .eq('id', activeCabin.id);
+
+      if (error) throw error;
+
+      await loadDatabaseData();
+      setIsEditCabinModalOpen(false);
+
+    } catch (err: any) {
+      alert(`Erro ao atualizar cabana: ${err.message || err}`);
+    } finally {
+      setSavingCabin(false);
+    }
+  };
+
   // Inicializar e carregar dados
   const loadDatabaseData = async () => {
     try {
@@ -522,6 +566,12 @@ export default function CRMAdminPage() {
                   <p className="text-xs text-wood font-light leading-relaxed max-w-md mt-0.5">
                     {activeCabin.description || 'Cabana padrão de luxo com lareira e hidromassagem.'}
                   </p>
+                  <button
+                    onClick={() => handleOpenEditCabin(activeCabin)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 hover:bg-gold hover:text-white text-gold text-[10px] font-bold rounded-lg border border-gold/20 transition-all duration-200"
+                  >
+                    <Edit3 className="w-3 h-3" /> Editar Cabana
+                  </button>
                 </div>
 
                 {/* Controles de Mês */}
@@ -951,6 +1001,114 @@ export default function CRMAdminPage() {
                     className="flex-1 py-3 bg-gold hover:bg-coffee text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 border border-gold/10"
                   >
                     {updatingBooking ? 'Salvando...' : 'Confirmar'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE EDIÇÃO DE CABANA */}
+      <AnimatePresence>
+        {isEditCabinModalOpen && activeCabin && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditCabinModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            {/* Modal Card */}
+            <motion.div 
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              className="relative w-full max-w-md bg-bgCard dark:bg-[#2E1F17] rounded-[2rem] shadow-2xl overflow-hidden border border-beige/40 dark:border-stone-800 z-10"
+            >
+              <div className="p-6 bg-coffee text-white flex justify-between items-center border-b border-beige/10">
+                <div>
+                  <h4 className="text-lg font-serif font-bold text-gold">Editar Cabana</h4>
+                  <p className="text-xs text-stone-300 font-light mt-0.5">{activeCabin.name}</p>
+                </div>
+                <button 
+                  onClick={() => setIsEditCabinModalOpen(false)}
+                  className="text-white hover:text-gold text-2xl font-light transition-colors"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCabin} className="p-6 space-y-4">
+                <div className="space-y-3">
+                  {/* Nome da Cabana */}
+                  <div>
+                    <label className="block text-xs font-bold text-wood mb-1">Nome da Cabana</label>
+                    <input
+                      type="text"
+                      required
+                      value={editCabinName}
+                      onChange={e => setEditCabinName(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 font-bold"
+                    />
+                  </div>
+
+                  {/* Capacidade */}
+                  <div>
+                    <label className="block text-xs font-bold text-wood mb-1">Capacidade Máxima (Hóspedes)</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={editCabinCapacity}
+                      onChange={e => setEditCabinCapacity(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250"
+                    />
+                  </div>
+
+                  {/* Valor por Noite */}
+                  <div>
+                    <label className="block text-xs font-bold text-wood mb-1">Valor da Diária (R$)</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      step={0.01}
+                      value={editCabinPrice}
+                      onChange={e => setEditCabinPrice(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 font-bold text-emerald-800 dark:text-emerald-400"
+                    />
+                  </div>
+
+                  {/* Descrição */}
+                  <div>
+                    <label className="block text-xs font-bold text-wood mb-1">Descrição / Detalhes</label>
+                    <textarea
+                      value={editCabinDescription}
+                      onChange={e => setEditCabinDescription(e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2.5 border border-beige/40 dark:border-stone-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-[#FAF7F2] dark:bg-stone-950 text-coffee dark:text-stone-250 resize-none font-light leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditCabinModalOpen(false)}
+                    className="flex-1 py-3 border border-beige rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCabin}
+                    className="flex-1 py-3 bg-gold hover:bg-coffee text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 border border-gold/10"
+                  >
+                    {savingCabin ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </form>
