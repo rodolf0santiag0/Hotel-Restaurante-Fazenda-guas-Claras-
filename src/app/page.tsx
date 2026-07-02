@@ -79,12 +79,12 @@ export default function LandingPage() {
       {/* FLOATING HEADER NAVBAR */}
       <header className="absolute top-0 left-0 right-0 z-30 bg-transparent py-4">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          {/* Logo (Transparent PNG - Inverted to White for dark background) */}
+          {/* Logo (Transparent PNG / Blended Brown Logo) */}
           <div className="cursor-pointer" onClick={() => scrollToSection('reserva')}>
             <img 
-              src="/images/logo.png" 
+              src="/images/logo.png?v=3" 
               alt="Logo Fazenda Águas Claras"
-              className="h-16 w-auto brightness-0 invert"
+              className="h-16 w-auto mix-blend-multiply"
             />
           </div>
           
@@ -428,12 +428,12 @@ export default function LandingPage() {
       <footer className="bg-stone-950 text-stone-400 py-16 border-t border-stone-850">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <div className="space-y-4">
-            {/* Logo (Transparent PNG - Inverted to White for dark background) */}
+            {/* Logo (Transparent PNG / Blended White Logo) */}
             <div className="mb-2">
               <img 
-                src="/images/logo.png" 
+                src="/images/logo.png?v=3" 
                 alt="Logo Fazenda Águas Claras"
-                className="h-14 w-auto brightness-0 invert"
+                className="h-14 w-auto invert mix-blend-screen"
               />
             </div>
             <p className="text-xs leading-relaxed max-w-sm">

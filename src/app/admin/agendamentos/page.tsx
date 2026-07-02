@@ -415,9 +415,9 @@ export default function CRMAdminPage() {
         <div className="flex items-center gap-3">
           <div>
             <img 
-              src="/images/logo.png" 
+              src="/images/logo.png?v=3" 
               alt="Logo Fazenda Águas Claras"
-              className="h-12 w-auto dark:brightness-0 dark:invert"
+              className="h-12 w-auto mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert"
             />
           </div>
           <div>
