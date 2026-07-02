@@ -102,12 +102,12 @@ export default function LandingPage() {
       {/* FLOATING HEADER NAVBAR */}
       <header className="absolute top-0 left-0 right-0 z-30 bg-transparent py-4">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          {/* Logo Crop (Dark/White Logo on bottom 50% of the image) */}
-          <div className="h-14 w-28 relative overflow-hidden cursor-pointer" onClick={() => scrollToSection('reserva')}>
+          {/* Logo (Transparent PNG - Inverted to White for dark background) */}
+          <div className="cursor-pointer" onClick={() => scrollToSection('reserva')}>
             <img 
-              src="/images/logo.jpg" 
+              src="/images/logo.png" 
               alt="Logo Fazenda Águas Claras"
-              className="absolute bottom-0 left-0 w-full h-[200%] object-cover object-bottom"
+              className="h-16 w-auto brightness-0 invert"
             />
           </div>
           
@@ -471,12 +471,12 @@ export default function LandingPage() {
       <footer className="bg-stone-950 text-stone-400 py-16 border-t border-stone-850">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <div className="space-y-4">
-            {/* Logo Crop */}
-            <div className="h-12 w-24 relative overflow-hidden mb-2">
+            {/* Logo (Transparent PNG - Inverted to White for dark background) */}
+            <div className="mb-2">
               <img 
-                src="/images/logo.jpg" 
+                src="/images/logo.png" 
                 alt="Logo Fazenda Águas Claras"
-                className="absolute bottom-0 left-0 w-full h-[200%] object-cover object-bottom"
+                className="h-14 w-auto brightness-0 invert"
               />
             </div>
             <p className="text-xs leading-relaxed max-w-sm">

@@ -413,11 +413,11 @@ export default function CRMAdminPage() {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-stone-200 dark:border-stone-850 pb-6">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-24 relative overflow-hidden rounded-xl border border-stone-200 dark:border-stone-850">
+          <div>
             <img 
-              src="/images/logo.jpg" 
+              src="/images/logo.png" 
               alt="Logo Fazenda Águas Claras"
-              className="absolute top-0 left-0 w-full h-[200%] object-cover object-top"
+              className="h-12 w-auto dark:brightness-0 dark:invert"
             />
           </div>
           <div>
