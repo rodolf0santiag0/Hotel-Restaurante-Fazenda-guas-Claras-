@@ -22,29 +22,7 @@ import {
 import AvailabilityCalendar from '@/components/public/availability-calendar';
 import { Cabin } from '@/types';
 
-// Lista das 20 Cabanas Padronizadas
-const CABINS_LIST: Cabin[] = [
-  { id: '1', name: 'Cabana 01 - Vale Verde', description: 'Vista para o vale verde e banheira de hidromassagem.', capacity: 2, is_active: true, price_per_night: 450, image_url: null, created_at: '' },
-  { id: '2', name: 'Cabana 02 - Recanto da Serra', description: 'Cabana rústica no alto da montanha, ideal para casais.', capacity: 2, is_active: true, price_per_night: 480, image_url: null, created_at: '' },
-  { id: '3', name: 'Cabana 03 - Sol Nascente', description: 'Excelente iluminação natural pela manhã e deck privativo.', capacity: 4, is_active: true, price_per_night: 600, image_url: null, created_at: '' },
-  { id: '4', name: 'Cabana 04 - Lago Azul', description: 'Localizada às margens do lago, com pier próprio para pesca.', capacity: 3, is_active: true, price_per_night: 520, image_url: null, created_at: '' },
-  { id: '5', name: 'Cabana 05 - Brisa do Bosque', description: 'Cercada por mata nativa, perfeita para quem busca silêncio.', capacity: 2, is_active: true, price_per_night: 420, image_url: null, created_at: '' },
-  { id: '6', name: 'Cabana 06 - Das Flores', description: 'Jardim florido privativo e lareira interna a lenha.', capacity: 2, is_active: true, price_per_night: 460, image_url: null, created_at: '' },
-  { id: '7', name: 'Cabana 07 - Do Lago', description: 'Vista panorâmica do lago com banheira externa aquecida.', capacity: 2, is_active: true, price_per_night: 550, image_url: null, created_at: '' },
-  { id: '8', name: 'Cabana 08 - Vista Alegre', description: 'Deck suspenso com uma das vistas mais bonitas da fazenda.', capacity: 4, is_active: true, price_per_night: 650, image_url: null, created_at: '' },
-  { id: '9', name: 'Cabana 09 - Pinheiro', description: 'Cabana familiar espaçosa entre pinheiros centenários.', capacity: 6, is_active: true, price_per_night: 800, image_url: null, created_at: '' },
-  { id: '10', name: 'Cabana 10 - Cachoeira', description: 'Próxima ao riacho com o som relaxante da queda d\'água.', capacity: 2, is_active: true, price_per_night: 490, image_url: null, created_at: '' },
-  { id: '11', name: 'Cabana 11 - Araucária', description: 'Estrutura alpina clássica e banheira estilo vitoriano.', capacity: 2, is_active: true, price_per_night: 500, image_url: null, created_at: '' },
-  { id: '12', name: 'Cabana 12 - Sol da Manhã', description: 'Grande painel de vidro voltado para o leste.', capacity: 3, is_active: true, price_per_night: 530, image_url: null, created_at: '' },
-  { id: '13', name: 'Cabana 13 - Lua Cheia', description: 'Teto de vidro sobre a cama para observar as estrelas.', capacity: 2, is_active: true, price_per_night: 580, image_url: null, created_at: '' },
-  { id: '14', name: 'Cabana 14 - Estrela', description: 'Ambiente moderno e minimalista integrado à natureza.', capacity: 2, is_active: true, price_per_night: 470, image_url: null, created_at: '' },
-  { id: '15', name: 'Cabana 15 - Das Pedras', description: 'Construída com pedras locais, lareira e adega.', capacity: 4, is_active: true, price_per_night: 700, image_url: null, created_at: '' },
-  { id: '16', name: 'Cabana 16 - Cantinho da Paz', description: 'Afastada das áreas de lazer, máxima privacidade.', capacity: 2, is_active: true, price_per_night: 440, image_url: null, created_at: '' },
-  { id: '17', name: 'Cabana 17 - Beira Rio', description: 'A poucos passos do rio que corta a propriedade.', capacity: 4, is_active: true, price_per_night: 590, image_url: null, created_at: '' },
-  { id: '18', name: 'Cabana 18 - Recanto Feliz', description: 'Amplo espaço externo com churrasqueira.', capacity: 5, is_active: true, price_per_night: 750, image_url: null, created_at: '' },
-  { id: '19', name: 'Cabana 19 - Bela Vista', description: 'Ponto mais alto da propriedade com pôr do sol espetacular.', capacity: 2, is_active: true, price_per_night: 600, image_url: null, created_at: '' },
-  { id: '20', name: 'Cabana 20 - Monte Branco', description: 'Design escandinavo, sauna privativa e piso aquecido.', capacity: 2, is_active: true, price_per_night: 900, image_url: null, created_at: '' }
-];
+// As cabanas são padronizadas e carregadas diretamente de forma dinâmica no calendário abaixo.
 
 // Dados da Galeria de Fotos do Local (Fotos enviadas pelo usuário)
 const GALLERY_IMAGES = [
@@ -86,7 +64,6 @@ const EVENTS_DATA = [
 ];
 
 export default function LandingPage() {
-  const [selectedCabin, setSelectedCabin] = useState<Cabin>(CABINS_LIST[0]);
   const [activeGalleryIdx, setActiveGalleryIdx] = useState<number | null>(null);
 
   const scrollToSection = (id: string) => {
@@ -246,29 +223,14 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Seletor de Cabanas */}
-                <div className="border-t border-stone-100 pt-6 space-y-3">
-                  <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider">
-                    Selecione a Cabana para reservar:
-                  </label>
-                  <select
-                    value={selectedCabin.id}
-                    onChange={(e) => {
-                      const found = CABINS_LIST.find(c => c.id === e.target.value);
-                      if (found) setSelectedCabin(found);
-                    }}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 text-stone-800 font-semibold appearance-none"
-                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3E%3Cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3E%3C/svg%3E")', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem', backgroundRepeat: 'no-repeat' }}
-                  >
-                    {CABINS_LIST.map((cabin) => (
-                      <option key={cabin.id} value={cabin.id}>
-                        {cabin.name} (Capacidade: {cabin.capacity}p)
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-stone-400 flex items-center gap-1">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    As tarifas podem variar dependendo da capacidade e localização de cada unidade.
+                {/* Informativo de Tarifas */}
+                <div className="border-t border-stone-100 pt-6 space-y-2">
+                  <p className="text-xs text-stone-500 flex items-center gap-1.5 font-semibold">
+                    <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                    Como funciona a reserva?
+                  </p>
+                  <p className="text-[11px] text-stone-500 leading-relaxed">
+                    Escolha as datas desejadas no calendário de reservas ao lado. O sistema listará instantaneamente quais das nossas 20 cabanas estão livres (quadrados verdes). Basta selecionar o número da cabana livre de sua preferência para solicitar a locação!
                   </p>
                 </div>
               </div>
@@ -287,12 +249,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <AvailabilityCalendar 
-              cabinId={selectedCabin.id}
-              cabinName={selectedCabin.name}
-              capacity={selectedCabin.capacity}
-              pricePerNight={selectedCabin.price_per_night}
-            />
+            <AvailabilityCalendar />
           </div>
 
         </div>
