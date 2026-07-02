@@ -116,7 +116,7 @@ export default function LandingPage() {
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-70 scale-105 transition-transform duration-[10000ms]"
           style={{ 
-            backgroundImage: "url('/images/fazenda-paisagem.jpg')",
+            backgroundImage: "url('/images/hero-bg.jpg')",
           }}
         />
 
