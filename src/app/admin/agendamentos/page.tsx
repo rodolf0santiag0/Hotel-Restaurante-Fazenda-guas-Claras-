@@ -402,7 +402,7 @@ export default function CRMAdminPage() {
         <div className="flex items-center gap-3">
           <div className="transition-transform duration-300 hover:scale-103">
             <img 
-              src="/images/logo.png?v=3" 
+              src="/images/logo.png?v=4" 
               alt="Logo Fazenda Águas Claras"
               className="h-12 w-auto mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert"
             />

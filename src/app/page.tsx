@@ -81,9 +81,9 @@ export default function LandingPage() {
           {/* Logo (Transparent PNG / Blended Brown Logo) */}
           <div className="cursor-pointer transition-transform duration-300 hover:scale-103" onClick={() => scrollToSection('reserva')}>
             <img 
-              src="/images/logo.png?v=3" 
+              src="/images/logo.png?v=4" 
               alt="Logo Fazenda Águas Claras"
-              className="h-14 w-auto mix-blend-multiply"
+              className="h-16 w-auto mix-blend-multiply"
             />
           </div>
           
@@ -464,7 +464,7 @@ export default function LandingPage() {
             {/* Logo transparent inverted */}
             <div className="mb-2">
               <img 
-                src="/images/logo.png?v=3" 
+                src="/images/logo.png?v=4" 
                 alt="Logo Fazenda Águas Claras"
                 className="h-14 w-auto invert mix-blend-screen"
               />
